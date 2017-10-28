@@ -1,5 +1,8 @@
 package com.mujutsu.simplecrawler;
 
+import java.time.ZonedDateTime;
+import java.time.chrono.ChronoZonedDateTime;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
@@ -24,6 +27,22 @@ public class Simplecrawler {
 
 		for (ApartmentEntry apartmentEntry : apartmentEntries)
 			System.out.println(apartmentEntry);
+
+		List<ApartmentEntry> priceFilteredList = new ArrayList<>();
+
+		for (ApartmentEntry apartmentEntry : apartmentEntries) {
+			Double price = apartmentEntry.getPriceInRon();
+			if (MINIMUM_PRICE <= price && price <= MAXIMUM_PRICE) {
+				priceFilteredList.add(apartmentEntry);
+			}
+		}
+		
+		List<ApartmentEntry> dateFilteredList = new ArrayList<>();
+		
+		for (ApartmentEntry apartmentEntry : apartmentEntries) {
+						
+		}
+		
 
 	}
 
