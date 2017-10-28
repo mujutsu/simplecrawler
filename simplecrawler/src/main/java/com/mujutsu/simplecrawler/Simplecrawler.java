@@ -8,9 +8,9 @@ import java.util.List;
 
 public class Simplecrawler {
 
-	private static final int NUMBER_OF_DAYS_TO_SHOW_STATISTICS_FOR = 100;
-	private static final Double MINIMUM_PRICE = 0.0;
-	private static final Double MAXIMUM_PRICE = 1000000000.0;
+	private static final int NUMBER_OF_DAYS_TO_SHOW_STATISTICS_FOR = 5;
+	private static final Double MINIMUM_PRICE = 50000.0;
+	private static final Double MAXIMUM_PRICE = 200000.0;
 
 	public static void main(String[] args) {
 
