@@ -1,7 +1,6 @@
 package com.mujutsu.simplecrawler;
 
 import java.time.ZonedDateTime;
-import java.time.chrono.ChronoZonedDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
@@ -36,13 +35,19 @@ public class Simplecrawler {
 				priceFilteredList.add(apartmentEntry);
 			}
 		}
-		
+
+		System.out.println("Price filtered list: " + priceFilteredList);
+
 		List<ApartmentEntry> dateFilteredList = new ArrayList<>();
-		
+
 		for (ApartmentEntry apartmentEntry : apartmentEntries) {
-						
+			ZonedDateTime time = ZonedDateTime.now().minusDays(NUMBER_OF_DAYS_TO_SHOW_STATISTICS_FOR);
+			if (apartmentEntry.getTimeOfPosting().getDayOfMonth() > time.getDayOfMonth()) {
+				dateFilteredList.add(apartmentEntry);
+			}
 		}
-		
+
+		System.out.println("Date filtered list: " + dateFilteredList);
 
 	}
 
