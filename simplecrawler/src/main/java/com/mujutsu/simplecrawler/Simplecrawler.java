@@ -2,7 +2,6 @@ package com.mujutsu.simplecrawler;
 
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 
@@ -27,6 +26,7 @@ public class Simplecrawler {
 		for (ApartmentEntry apartmentEntry : apartmentEntries)
 			System.out.println(apartmentEntry);
 
+		// price filtering
 		List<ApartmentEntry> priceFilteredList = new ArrayList<>();
 
 		for (ApartmentEntry apartmentEntry : apartmentEntries) {
@@ -36,8 +36,10 @@ public class Simplecrawler {
 			}
 		}
 
-		System.out.println("Price filtered list: " + priceFilteredList);
+		for (ApartmentEntry apartmentEntry : priceFilteredList)
+			System.out.println("Price filtered list: " + apartmentEntry);
 
+		// date filtering
 		List<ApartmentEntry> dateFilteredList = new ArrayList<>();
 
 		for (ApartmentEntry apartmentEntry : apartmentEntries) {
@@ -47,20 +49,8 @@ public class Simplecrawler {
 			}
 		}
 
-		System.out.println("Date filtered list: " + dateFilteredList);
+		for (ApartmentEntry apartmentEntry : dateFilteredList)
+			System.out.println("Date filtered list: " + apartmentEntry);
 
 	}
-
-	static class DateComparator implements Comparator<ApartmentEntry> {
-		public int compare(ApartmentEntry a1, ApartmentEntry a2) {
-			return a1.getTimeOfPosting().compareTo(a2.getTimeOfPosting());
-		}
-	}
-
-	static class PriceComparator implements Comparator<ApartmentEntry> {
-		public int compare(ApartmentEntry a1, ApartmentEntry a2) {
-			return a1.getPriceInRon().compareTo(a2.getPriceInRon());
-		}
-	}
-
 }
