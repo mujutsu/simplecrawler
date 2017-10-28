@@ -71,7 +71,7 @@ public class CrawleyController {
 
 		List<String> tempLinks = new ArrayList<>();
 
-		for (Integer i = 1; i < 2; i++) {
+		for (Integer i = 1; i < MAX_PAGE_NUMBER; i++) {
 
 			String pageUrl = URL + PAGE_SUFFIX + i.toString();
 			System.out.println("Attempting to get links from page: " + pageUrl);
