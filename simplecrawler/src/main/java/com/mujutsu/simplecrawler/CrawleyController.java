@@ -1,10 +1,19 @@
 package com.mujutsu.simplecrawler;
 
 import java.io.IOException;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.Month;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -12,6 +21,12 @@ import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
 public class CrawleyController {
+
+	static final double EURO_VALUE = 4.5;
+
+	static final String DECOMANDAT = "decomandat";
+	static final String SEMIDECOMANDAT = "semidecomandat";
+	static final String CIRCULAR = "circular";
 
 	static final String MAIN_LINK = "http://anuntul.ro/anunturi-imobiliare-vanzari/";
 	static final String PAGE_SUFFIX = "?page=";
@@ -26,20 +41,37 @@ public class CrawleyController {
 	static final String SPATII_COMERCIALE_INDUSTRIALE = "spatii-comerciale-industriale/";
 	static final String CUMPARARI_SCHIMBURI = "cumparari-schimburi/";
 
+	static final Map<String, Month> monthEquivalenceMap = new HashMap<>();
+
+	static {
+		monthEquivalenceMap.put("ian", Month.JANUARY);
+		monthEquivalenceMap.put("feb", Month.FEBRUARY);
+		monthEquivalenceMap.put("mar", Month.MARCH);
+		monthEquivalenceMap.put("apr", Month.APRIL);
+		monthEquivalenceMap.put("mai", Month.MAY);
+		monthEquivalenceMap.put("iun", Month.JUNE);
+		monthEquivalenceMap.put("iul", Month.JULY);
+		monthEquivalenceMap.put("aug", Month.AUGUST);
+		monthEquivalenceMap.put("sep", Month.SEPTEMBER);
+		monthEquivalenceMap.put("oct", Month.OCTOBER);
+		monthEquivalenceMap.put("noi", Month.NOVEMBER);
+		monthEquivalenceMap.put("dec", Month.DECEMBER);
+	}
+
 	static final List<String> apartmentTypes = new ArrayList<>(Arrays.asList(GARSONIERE, DOUA_CAMERE, TREI_CAMERE,
 			PATRU_CAMERE, CASE_VILE, TERENURI, SPATII_COMERCIALE_INDUSTRIALE, CUMPARARI_SCHIMBURI));
 
-	private HashSet<String> links;
-
 	public CrawleyController() {
-		links = new HashSet<String>();
+
 	}
 
-	public void getPageLinks(String URL) throws InterruptedException {
+	public static HashSet<String> getPageLinks(String URL) throws InterruptedException {
+
+		HashSet<String> links = new HashSet<String>();
 
 		List<String> tempLinks = new ArrayList<>();
 
-		for (Integer i = 1; i < MAX_PAGE_NUMBER; i++) {
+		for (Integer i = 1; i < 2; i++) {
 
 			String pageUrl = URL + PAGE_SUFFIX + i.toString();
 			System.out.println("Attempting to get links from page: " + pageUrl);
@@ -58,6 +90,7 @@ public class CrawleyController {
 				}
 
 				if (tempLinks.isEmpty()) {
+					System.out.println("Page contains no valid links, assuming it's last page and stopping.");
 					break;
 				} else {
 					for (String apartment : tempLinks) {
@@ -70,9 +103,42 @@ public class CrawleyController {
 				System.err.println("For '" + URL + "': " + e.getMessage());
 			}
 		}
+		return links;
 	}
 
-	public Boolean isApartmentSaleLink(String URL) throws InterruptedException {
+	public static List<ApartmentEntry> getAllAds(HashSet<String> linksList) {
+
+		List<ApartmentEntry> apartmentEntries = new ArrayList<>();
+
+		for (String link : linksList) {
+
+			Document document = null;
+			try {
+				document = Jsoup.connect(link).get();
+			} catch (IOException e) {
+				System.err.println("For '" + link + "': " + e.getMessage());
+				continue;
+			}
+
+			Double price = getPriceFromDocument(document);
+			String type = getTypeFromDocument(document);
+			ZonedDateTime dateTime = getTimeFromDocument(document);
+			Set<String> imagesCollection = getImageLinksFromDocument(document);
+
+			ApartmentEntry apartmentEntry = new ApartmentEntry();
+			apartmentEntry.setLink(link);
+			apartmentEntry.setPriceInRon(price);
+			apartmentEntry.setType(type);
+			apartmentEntry.setTimeOfPosting(dateTime);
+			apartmentEntry.setImagesCollection(imagesCollection);
+
+			apartmentEntries.add(apartmentEntry);
+		}
+
+		return apartmentEntries;
+	}
+
+	private static Boolean isApartmentSaleLink(String URL) throws InterruptedException {
 		if (URL == null || "".equals(URL) || !URL.contains(MAIN_LINK))
 			return false;
 		for (String type : apartmentTypes) {
@@ -84,5 +150,100 @@ public class CrawleyController {
 			}
 		}
 		return false;
+	}
+
+	private static double getPriceFromDocument(Document document) {
+		Double price = 0.0;
+		String priceString = "0";
+		if (!document.getElementsByClass("price").isEmpty()) {
+			priceString = document.getElementsByClass("price").get(0).text();
+		}
+
+		if (priceString.contains("€")) {
+			try {
+				int euroPrice = Integer.parseInt(priceString.replaceAll("[^\\d]", ""));
+				price = euroPrice * EURO_VALUE;
+			} catch (Exception ex) {
+			}
+		} else if (priceString.contains("Lei")) {
+			try {
+				price = Double.parseDouble(priceString.replaceAll("[^\\d]", ""));
+			} catch (Exception ex) {
+			}
+		} else {
+			price = 0.0;
+		}
+		return price;
+	}
+
+	private static String getTypeFromDocument(Document document) {
+		Elements elements = document.select("div.label-list > ul").select("li");
+		for (Element element : elements) {
+			String text = element.text().toLowerCase();
+			switch (text) {
+			case DECOMANDAT:
+				return DECOMANDAT;
+			case SEMIDECOMANDAT:
+				return SEMIDECOMANDAT;
+			case CIRCULAR:
+				return CIRCULAR;
+			}
+		}
+		return null;
+	}
+
+	private static ZonedDateTime getTimeFromDocument(Document document) {
+
+		Element date = document.select("div.loc-data").first();
+		String[] dateString = date.text().split(",");
+
+		DateTimeFormatter timeFormatter = DateTimeFormatter.ISO_TIME;
+		LocalTime localTime = LocalTime.parse(dateString[2].trim(), timeFormatter);
+
+		LocalDate localDate = null;
+
+		if ("azi".equals(dateString[1].trim())) {
+			localDate = LocalDate.now();
+		} else if ("ieri".equals(dateString[1].trim())) {
+			localDate = LocalDate.now().minusDays(1);
+		} else {
+			String[] tempArray = dateString[1].trim().split(" ");
+			Integer day = null;
+			try {
+				day = Integer.parseInt(tempArray[0]);
+			} catch (Exception e) {
+			}
+
+			int year = LocalDate.now().getYear();
+			Month month = monthEquivalenceMap.get(tempArray[1]);
+
+			// current year is unavailable and while it could be calculated it's
+			// a bit too much for this timeframe.
+			localDate = LocalDate.of(year, month, day);
+		}
+
+		ZonedDateTime result = ZonedDateTime.of(localDate, localTime, ZoneId.systemDefault());
+
+		return result;
+	}
+
+	private static Set<String> getImageLinksFromDocument(Document document) {
+		Set<String> imagesCollection = new HashSet<>();
+
+		Elements imageGallery = null;
+		if (!document.select("ul#image-gallery").isEmpty()) {
+			imageGallery = document.select("ul#image-gallery").first().select("li>img");
+		}
+
+		if (imageGallery != null && !imageGallery.isEmpty()) {
+			for (Element element : imageGallery) {
+				String pictureThumbnailLink = element.absUrl("src");
+				if (!"".equals(pictureThumbnailLink)) {
+					String pictureLink = pictureThumbnailLink.replace("/thumb2/", "/imgs/");
+					imagesCollection.add(pictureLink);
+				}
+			}
+		}
+		return imagesCollection;
 	}
 }
