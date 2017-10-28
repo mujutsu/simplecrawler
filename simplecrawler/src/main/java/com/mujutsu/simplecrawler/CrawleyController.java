@@ -31,7 +31,6 @@ public class CrawleyController {
 	static final String MAIN_LINK = "http://anuntul.ro/anunturi-imobiliare-vanzari/";
 	static final String PAGE_SUFFIX = "?page=";
 
-	static final Integer MAX_PAGE_NUMBER = 1000;
 	static final String GARSONIERE = "garsoniere/";
 	static final String DOUA_CAMERE = "apartamente-2-camere/";
 	static final String TREI_CAMERE = "apartamente-3-camere/";
@@ -65,13 +64,15 @@ public class CrawleyController {
 
 	}
 
-	public static HashSet<String> getPageLinks(String URL) throws InterruptedException {
+	public static HashSet<String> getPageLinks(String URL, int minPageNumber, int maxPageNumber) throws InterruptedException {
 
 		HashSet<String> links = new HashSet<String>();
 
 		List<String> tempLinks = new ArrayList<>();
 
-		for (Integer i = 1; i < MAX_PAGE_NUMBER; i++) {
+		for (Integer i = minPageNumber; i < maxPageNumber; i++) {
+
+			System.out.println("Processing page: " + i);
 
 			String pageUrl = URL + PAGE_SUFFIX + i.toString();
 			System.out.println("Attempting to get links from page: " + pageUrl);
@@ -93,6 +94,7 @@ public class CrawleyController {
 					System.out.println("Page contains no valid links, assuming it's last page and stopping.");
 					break;
 				} else {
+					System.out.println("Adding " + tempLinks.size() + " records from page " + i + " to records list.");
 					for (String apartment : tempLinks) {
 						links.add(apartment);
 						System.out.println("Added apartment link to list: " + apartment);
@@ -110,7 +112,14 @@ public class CrawleyController {
 
 		List<ApartmentEntry> apartmentEntries = new ArrayList<>();
 
+		int counter = 0;
+		int numberOfEntries = linksList.size();
+
 		for (String link : linksList) {
+
+			counter++;
+
+			System.out.println("Processing record " + counter + " out of " + numberOfEntries + ".");
 
 			Document document = null;
 			try {
@@ -133,6 +142,8 @@ public class CrawleyController {
 			apartmentEntry.setImagesCollection(imagesCollection);
 
 			apartmentEntries.add(apartmentEntry);
+
+			System.out.println("Entry added to list: " + apartmentEntry);
 		}
 
 		return apartmentEntries;
